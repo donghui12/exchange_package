@@ -78,7 +78,7 @@ class LicenseDialog:
         self._create_title_section(main_frame)
         
         # 电脑码显示区域
-        self._create_machine_code_section(main_frame)
+        # self._create_machine_code_section(main_frame)
         
         # 授权码输入区域
         self._create_license_key_section(main_frame)
