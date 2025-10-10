@@ -70,7 +70,7 @@ class LicenseManager:
             disk_serial = self._get_disk_serial()
             
             # 组合硬件信息
-            hardware_info = f"{motherboard_id}"
+            hardware_info = f"{cpu_info}"
             
             # 生成MD5哈希
             machine_code = hashlib.md5(hardware_info.encode()).hexdigest().upper()
