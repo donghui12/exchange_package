@@ -10,9 +10,9 @@ from tkinter import messagebox
 # 添加src目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from gui.main_window import MaterialConverterApp
-from gui.license_dialog import LicenseDialog
-from utils.license_manager import LicenseManager
+from src.gui.main_window import MaterialConverterApp
+from src.gui.license_dialog import LicenseDialog
+from src.utils.license_manager import LicenseManager
 
 def check_license() -> bool:
     """
@@ -23,34 +23,30 @@ def check_license() -> bool:
     """
     try:
         license_manager = LicenseManager()
-        is_valid, message, expiry_date = license_manager.check_license()
+        is_valid, message, remaining_days = license_manager.check_license()
         
         if is_valid:
             # 检查是否即将过期（7天内）
-            if expiry_date:
-                from datetime import datetime, timedelta
-                remaining_days = (expiry_date - datetime.now()).days
+            if remaining_days <= 0:
+                # 已过期
+                root = tk.Tk()
+                root.withdraw()
+                messagebox.showerror(
+                    "授权过期", 
+                    f"软件授权已过期！\n\n请联系供应商续费"
+                )
+                root.destroy()
+                return False
                 
-                if remaining_days <= 0:
-                    # 已过期
-                    root = tk.Tk()
-                    root.withdraw()
-                    messagebox.showerror(
-                        "授权过期", 
-                        f"软件授权已过期！\n\n过期时间: {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}\n\n请联系供应商续费"
-                    )
-                    root.destroy()
-                    return False
-                    
-                elif remaining_days <= 7:
-                    # 即将过期提醒
-                    root = tk.Tk()
-                    root.withdraw()
-                    messagebox.showwarning(
-                        "授权即将过期", 
-                        f"软件授权即将过期！\n\n剩余天数: {remaining_days} 天\n过期时间: {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}\n\n请及时联系供应商续费"
-                    )
-                    root.destroy()
+            elif remaining_days <= 7:
+                # 即将过期提醒
+                root = tk.Tk()
+                root.withdraw()
+                messagebox.showwarning(
+                    "授权即将过期", 
+                    f"软件授权即将过期！\n\n剩余天数: {remaining_days} 天\n请及时联系供应商续费"
+                )
+                root.destroy()
             
             return True
         else:

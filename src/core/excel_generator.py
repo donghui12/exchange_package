@@ -60,59 +60,84 @@ class ExcelGenerator:
                     bottom=Side(style="thin")
                 )
             
-            # 填充商品基础信息
+            # 填充商品基础信息（按15列格式）
             row = 2
             
-            # 主商品信息行
-            ws.cell(row=row, column=1, value=goods_info.get('goods_id', ''))
-            ws.cell(row=row, column=2, value=goods_info.get('goods_name', ''))
-            ws.cell(row=row, column=3, value=price_info.get('min_group_price', 0) / 100)  # 转换为元
-            ws.cell(row=row, column=4, value=price_info.get('line_price', 0) / 100)  # 转换为元
-            ws.cell(row=row, column=5, value="主商品")
+            # 获取基础数据
+            goods_name = goods_info.get('goods_name', '')
+            goods_id = goods_info.get('goods_id', '')
             
-            # 图片数量统计
-            if download_results:
-                ws.cell(row=row, column=6, value=download_results.get('main_images', {}).get('success', 0))
-                ws.cell(row=row, column=7, value=download_results.get('detail_images', {}).get('success', 0))
-                ws.cell(row=row, column=8, value=download_results.get('sku_images', {}).get('success', 0))
+            # 主商品信息行（第一个SKU或主商品）
+            first_sku = sku_list[0] if sku_list else {}
+            
+            # 填充15列数据
+            ws.cell(row=row, column=1, value=goods_name)  # * 产品标题
+            ws.cell(row=row, column=2, value="CNY")  # 货币类型
+            ws.cell(row=row, column=3, value=f"https://mobile.yangkeduo.com/goods.html?goods_id={goods_id}")  # 货源链接
+            ws.cell(row=row, column=4, value="拼多多")  # 货源平台
+            ws.cell(row=row, column=5, value=goods_id)  # 产品主编号
+            ws.cell(row=row, column=6, value="")  # 详情描述（待填写）
+            ws.cell(row=row, column=7, value="")  # 货源类目（待填写）
+            ws.cell(row=row, column=8, value="")  # 属性（待填写）
+            
+            # SKU规格处理
+            if first_sku:
+                specs = first_sku.get('specs', [])
+                if len(specs) >= 1:
+                    ws.cell(row=row, column=9, value=specs[0].get('spec_value', ''))  # SKU规格1
+                if len(specs) >= 2:
+                    ws.cell(row=row, column=10, value=specs[1].get('spec_value', ''))  # SKU规格2
+                
+                # 生成平台SKU
+                spec_values = [spec.get('spec_value', '') for spec in specs if spec.get('spec_value')]
+                platform_sku = "-".join(spec_values) if spec_values else "默认"
+                ws.cell(row=row, column=11, value=platform_sku)  # 平台SKU
+                
+                ws.cell(row=row, column=12, value=first_sku.get('group_price', 0) / 100)  # * SKU售价
             else:
-                main_images = parser.get_main_images()
-                detail_images = parser.get_detail_images()
-                sku_images = parser.get_sku_images()
-                ws.cell(row=row, column=6, value=len(main_images))
-                ws.cell(row=row, column=7, value=len(detail_images))
-                ws.cell(row=row, column=8, value=len(sku_images))
+                ws.cell(row=row, column=9, value="")  # SKU规格1
+                ws.cell(row=row, column=10, value="")  # SKU规格2
+                ws.cell(row=row, column=11, value="默认")  # 平台SKU
+                ws.cell(row=row, column=12, value=price_info.get('min_group_price', 0) / 100)  # * SKU售价
             
-            ws.cell(row=row, column=9, value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            ws.cell(row=row, column=13, value=999)  # SKU库存（默认值）
+            ws.cell(row=row, column=14, value=0.5)  # SKU重量(KG)（默认值）
+            ws.cell(row=row, column=15, value="")  # SKU尺寸(CM)（待填写）
             
             row += 1
             
-            # SKU信息行
-            for sku in sku_list:
-                ws.cell(row=row, column=1, value=sku.get('sku_id', ''))
-                ws.cell(row=row, column=2, value=goods_info.get('goods_name', ''))
-                ws.cell(row=row, column=3, value=sku.get('group_price', 0) / 100)  # 转换为元
-                ws.cell(row=row, column=4, value=sku.get('normal_price', 0) / 100)  # 转换为元
+            # 其他SKU信息行
+            for sku in sku_list[1:]:  # 跳过第一个SKU
+                ws.cell(row=row, column=1, value=goods_name)  # * 产品标题
+                ws.cell(row=row, column=2, value="CNY")  # 货币类型
+                ws.cell(row=row, column=3, value="")  # 货源链接（空）
+                ws.cell(row=row, column=4, value="")  # 货源平台（空）
+                ws.cell(row=row, column=5, value="")  # 产品主编号（空）
+                ws.cell(row=row, column=6, value="")  # 详情描述（空）
+                ws.cell(row=row, column=7, value="")  # 货源类目（空）
+                ws.cell(row=row, column=8, value="")  # 属性（空）
                 
-                # 生成规格描述
+                # SKU规格处理
                 specs = sku.get('specs', [])
-                spec_desc = []
-                for spec in specs:
-                    key = spec.get('spec_key', '')
-                    value = spec.get('spec_value', '')
-                    if key and value:
-                        spec_desc.append(f"{key}:{value}")
+                if len(specs) >= 1:
+                    ws.cell(row=row, column=9, value=specs[0].get('spec_value', ''))  # SKU规格1
+                if len(specs) >= 2:
+                    ws.cell(row=row, column=10, value=specs[1].get('spec_value', ''))  # SKU规格2
                 
-                ws.cell(row=row, column=5, value="; ".join(spec_desc) if spec_desc else "默认规格")
-                ws.cell(row=row, column=6, value=0)  # SKU没有单独的主图
-                ws.cell(row=row, column=7, value=0)  # SKU没有单独的详情图
-                ws.cell(row=row, column=8, value=1 if sku.get('thumb_url') else 0)  # SKU图
-                ws.cell(row=row, column=9, value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                # 生成平台SKU
+                spec_values = [spec.get('spec_value', '') for spec in specs if spec.get('spec_value')]
+                platform_sku = "-".join(spec_values) if spec_values else "默认"
+                ws.cell(row=row, column=11, value=platform_sku)  # 平台SKU
+                
+                ws.cell(row=row, column=12, value=sku.get('group_price', 0) / 100)  # * SKU售价
+                ws.cell(row=row, column=13, value=999)  # SKU库存（默认值）
+                ws.cell(row=row, column=14, value=0.5)  # SKU重量(KG)（默认值）
+                ws.cell(row=row, column=15, value="")  # SKU尺寸(CM)（待填写）
                 
                 row += 1
             
-            # 设置列宽
-            column_widths = [15, 30, 12, 12, 25, 12, 12, 12, 20]
+            # 设置列宽（15列）
+            column_widths = [20, 10, 30, 10, 15, 25, 15, 25, 12, 12, 15, 12, 10, 12, 15]
             for i, width in enumerate(column_widths, 1):
                 ws.column_dimensions[get_column_letter(i)].width = width
             
@@ -129,7 +154,11 @@ class ExcelGenerator:
                     )
                     
                     # 价格列右对齐
-                    if col_num in [3, 4]:
+                    if col_num in [12]:  # * SKU售价列
+                        cell.alignment = Alignment(horizontal="right", vertical="center")
+                        cell.number_format = '0.00'
+                    # 重量列右对齐
+                    elif col_num in [14]:  # SKU重量(KG)列
                         cell.alignment = Alignment(horizontal="right", vertical="center")
                         cell.number_format = '0.00'
             

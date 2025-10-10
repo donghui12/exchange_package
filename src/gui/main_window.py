@@ -253,7 +253,7 @@ class MaterialConverterApp:
             ErrorDialog.show_error(
                 self.root, 
                 "输入错误", 
-                "在选择的目录中未找到PDD数据文件\\n\\n文件格式应为: *.txt"
+                "在选择的目录中未找到PDD数据文件\n\n文件格式应为: *.txt"
             )
             return False
         
@@ -277,7 +277,7 @@ class MaterialConverterApp:
         if not ErrorDialog.ask_yes_no(
             self.root, 
             "确认转换", 
-            f"即将开始转换\\n\\n输入目录: {input_path}\\n输出目录: {output_path}\\n\\n是否继续？"
+            f"即将开始转换\n\n输入目录: {input_path}\n输出目录: {output_path}\n\n是否继续？"
         ):
             return
         
@@ -334,10 +334,10 @@ class MaterialConverterApp:
             self.progress_widget.set_progress(100, "转换完成")
             
             success_msg = (
-                f"批量转换完成!\\n\\n"
-                f"总文件数: {result['total_files']}\\n"
-                f"成功: {result['success_count']}\\n"
-                f"失败: {result['failed_count']}\\n"
+                f"批量转换完成!\n\n"
+                f"总文件数: {result['total_files']}\n"
+                f"成功: {result['success_count']}\n"
+                f"失败: {result['failed_count']}\n"
                 f"用时: {result['total_time']:.2f}秒"
             )
             
@@ -357,7 +357,7 @@ class MaterialConverterApp:
         self.stop_button.config(state=tk.DISABLED)
         self.progress_widget.set_progress(0, "转换失败")
         
-        ErrorDialog.show_error(self.root, "转换异常", f"转换过程中发生异常:\\n\\n{error_message}")
+        ErrorDialog.show_error(self.root, "转换异常", f"转换过程中发生异常:\n\n{error_message}")
     
     def _stop_conversion(self):
         """停止转换"""
@@ -420,17 +420,17 @@ class MaterialConverterApp:
     def _show_help(self):
         """显示帮助信息"""
         help_text = (
-            f"{Config.APP_NAME} 使用说明\\n\\n"
-            "1. 选择数据包文件夹: 选择包含*.txt文件的文件夹\\n"
-            "2. 选择输出文件夹: 指定生成素材包的保存位置\\n"
-            "3. 设置转换参数: 配置输出间隔、格式和压缩选项\\n"
-            "4. 点击开始转换: 执行批量转换操作\\n\\n"
-            "支持的格式:\\n"
-            "• 格式1: 主图/SKU图/详情图/主图视频\\n"
-            "• 格式2: 产品主图/SKU图/详情图/产品视频\\n\\n"
-            "注意事项:\\n"
-            "• 确保网络连接正常，以便下载图片\\n"
-            "• 转换过程中请勿关闭程序\\n"
+            f"{Config.APP_NAME} 使用说明\n\n"
+            "1. 选择数据包文件夹: 选择包含*.txt文件的文件夹\n"
+            "2. 选择输出文件夹: 指定生成素材包的保存位置\n"
+            "3. 设置转换参数: 配置输出间隔、格式和压缩选项\n"
+            "4. 点击开始转换: 执行批量转换操作\n\n"
+            "支持的格式:\n"
+            "• 格式1: 主图/SKU图/详情图/主图视频\n"
+            "• 格式2: 产品主图/SKU图/详情图/产品视频\n\n"
+            "注意事项:\n"
+            "• 确保网络连接正常，以便下载图片\n"
+            "• 转换过程中请勿关闭程序\n"
             "• 建议在转换前备份重要数据"
         )
         
@@ -447,7 +447,7 @@ class MaterialConverterApp:
             if not ErrorDialog.ask_yes_no(
                 self.root, 
                 "确认退出", 
-                "转换正在进行中，确定要退出程序吗？\\n\\n注意: 退出后当前转换将被中断！"
+                "转换正在进行中，确定要退出程序吗？\n\n注意: 退出后当前转换将被中断！"
             ):
                 return
         
@@ -469,7 +469,7 @@ class MaterialConverterApp:
             ErrorDialog.show_error(
                 self.root, 
                 "程序异常", 
-                f"程序运行时发生异常:\\n\\n{str(e)}",
+                f"程序运行时发生异常:\n\n{str(e)}",
                 details=str(e)
             )
             self._on_closing()

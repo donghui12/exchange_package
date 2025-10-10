@@ -70,7 +70,7 @@ class LicenseManager:
             disk_serial = self._get_disk_serial()
             
             # 组合硬件信息
-            hardware_info = f"{motherboard_id}|{cpu_info}|{mac_address}|{disk_serial}"
+            hardware_info = f"{motherboard_id}"
             
             # 生成MD5哈希
             machine_code = hashlib.md5(hardware_info.encode()).hexdigest().upper()
@@ -169,7 +169,7 @@ class LicenseManager:
         # 格式化为更易读的格式
         return '-'.join([license_key[i:i+6] for i in range(0, len(license_key), 6)])
     
-    def verify_license_online(self, license_key: str, machine_code: str) -> Tuple[bool, str, Optional[datetime]]:
+    def verify_license_online(self, license_key: str, machine_code: str) -> Tuple[bool, str, int]:
         """
         在线验证授权码
         
@@ -193,30 +193,27 @@ class LicenseManager:
             print("payload:", payload)
             
             response = requests.get(LicenseConfig.get_verify_url(),params=payload)
-            print("response:", response)
+            print("response:", response.status_code)
             
-            if response.status_code == 200:
-                result = response.json()
-                print("this is resp", result)
+            result = response.json()
+            print("this is resp", result)
+            
+            if result.get("code", 0) == 200:
+                # 解析过期时间
+                expiry_day = result.get("data", {}).get("expiry_date")
                 
-                if result.get("code", 0) == 200:
-                    # 解析过期时间
-                    expiry_day = result.get("expiry_date")
-                    
-                    return True, result.get("message", "授权验证成功"), expiry_day
-                else:
-                    return False, result.get("message", "授权验证失败"), None
+                return True, result.get("message", "授权验证成功"), expiry_day
             else:
-                return False, f"服务器响应错误: HTTP {response.status_code}", None
+                return False, result.get("message", "授权验证失败"), 0
                 
         except requests.exceptions.Timeout:
-            return False, "验证请求超时，请检查网络连接", None
+            return False, "验证请求超时，请检查网络连接", 0
         except requests.exceptions.ConnectionError:
-            return False, "无法连接到验证服务器，请检查网络连接", None
+            return False, "无法连接到验证服务器，请检查网络连接", 0
         except requests.exceptions.RequestException as e:
-            return False, f"网络请求失败: {str(e)}", None
+            return False, f"网络请求失败: {str(e)}", 0
         except Exception as e:
-            return False, f"验证过程中发生错误: {str(e)}", None
+            return False, f"验证过程中发生错误: {str(e)}", 0
     
     def _xor_encrypt(self, data: bytes, key: bytes) -> bytes:
         """XOR加密/解密"""
@@ -308,7 +305,6 @@ class LicenseManager:
         is_valid, message, remaining_days = self.verify_license_online(license_key, machine_code)
         today = datetime.now().date()  # 只要日期，不包含时间
         expiry_date = today + timedelta(days=remaining_days)
-        
         if is_valid:
             # 保存授权信息到本地
             if self.save_license(license_key):

@@ -50,8 +50,9 @@ class Config:
     # 支持的图片格式
     SUPPORTED_IMAGE_FORMATS = ['.jpg', '.jpeg', '.png', '.webp']
     
-    # Excel模板配置
+    # Excel模板配置 - 按用户提供的15列格式
     EXCEL_HEADERS = [
-        "商品ID", "商品名称", "商品价格", "市场价", "SKU规格", 
-        "主图数量", "详情图数量", "SKU图数量", "创建时间"
+        "* 产品标题", "货币类型", "货源链接", "货源平台", "产品主编号", 
+        "详情描述", "货源类目", "属性", "SKU规格1", "SKU规格2",
+        "平台SKU", "* SKU售价", "SKU库存", "SKU重量(KG)", "SKU尺寸(CM)"
     ]
