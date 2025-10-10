@@ -235,14 +235,6 @@ class LicenseDialog:
         )
         self.activate_button.pack(side=tk.LEFT, padx=(0, 10))
         
-        # 试用按钮（如果支持）
-        trial_button = ttk.Button(
-            button_frame,
-            text="试用 (3天)",
-            command=self._start_trial
-        )
-        trial_button.pack(side=tk.LEFT, padx=(0, 10))
-        
         # 退出按钮
         exit_button = ttk.Button(
             button_frame,
@@ -332,25 +324,6 @@ class LicenseDialog:
         
         messagebox.showerror("激活异常", f"激活过程中发生错误:\n\n{error_message}")
     
-    def _start_trial(self):
-        """开始试用"""
-        # 生成3天试用授权
-        trial_key = self.license_manager.generate_license_key(self.machine_code, days=3)
-        
-        success, message, expiry_date = self.license_manager.activate_license(trial_key)
-        
-        if success:
-            self.status_var.set("试用中")
-            self.status_label.config(foreground='#F39C12')
-            self.detail_var.set(f"试用期至: {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            messagebox.showinfo("试用激活", "试用期激活成功！\n\n试用期限: 3天\n请及时购买正式授权")
-            
-            self.result = True
-            self.root.destroy()
-        else:
-            messagebox.showerror("试用失败", f"试用激活失败:\n\n{message}")
-    
     def _refresh_status(self):
         """刷新授权状态"""
         self._check_existing_license()
@@ -358,22 +331,18 @@ class LicenseDialog:
     def _check_existing_license(self):
         """检查现有授权"""
         try:
-            is_valid, message, expiry_date = self.license_manager.check_license()
+            is_valid, message, remaining_days = self.license_manager.check_license()
             
             if is_valid:
                 self.status_var.set("已激活")
                 self.status_label.config(foreground='#27AE60')
                 
-                if expiry_date:
-                    from datetime import datetime
-                    remaining_days = (expiry_date - datetime.now()).days
-                    if remaining_days <= 7:
-                        self.detail_var.set(f"授权即将过期 (剩余 {remaining_days} 天)")
-                        self.status_label.config(foreground='#F39C12')
-                    else:
-                        self.detail_var.set(f"授权有效期至: {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+                if remaining_days <= 7:
+                    self.detail_var.set(f"授权即将过期 (剩余 {remaining_days} 天)")
+                    self.status_label.config(foreground='#F39C12')
                 else:
-                    self.detail_var.set("永久授权")
+                    self.detail_var.set(f"剩余有效期：{remaining_days} 天")
                 
                 # 已有有效授权，可以直接使用
                 self.result = True
@@ -533,25 +502,17 @@ class LicenseManagerDialog:
         self.machine_code_label.config(text=machine_code)
         
         # 检查授权状态
-        is_valid, message, expiry_date = self.license_manager.check_license()
+        is_valid, message, remaining_days = self.license_manager.check_license()
         
         if is_valid:
             self.status_label.config(text="已激活", foreground='#27AE60')
             
-            if expiry_date:
-                from datetime import datetime
-                self.expiry_label.config(text=expiry_date.strftime('%Y-%m-%d %H:%M:%S'))
-                
-                remaining_days = (expiry_date - datetime.now()).days
-                if remaining_days <= 0:
-                    self.remaining_label.config(text="已过期", foreground='#E74C3C')
-                elif remaining_days <= 7:
-                    self.remaining_label.config(text=f"{remaining_days} 天", foreground='#F39C12')
-                else:
-                    self.remaining_label.config(text=f"{remaining_days} 天", foreground='#27AE60')
+            if remaining_days <= 0:
+                self.remaining_label.config(text="已过期", foreground='#E74C3C')
+            elif remaining_days <= 7:
+                self.remaining_label.config(text=f"{remaining_days} 天", foreground='#F39C12')
             else:
-                self.expiry_label.config(text="永久")
-                self.remaining_label.config(text="永久", foreground='#27AE60')
+                self.remaining_label.config(text=f"{remaining_days} 天", foreground='#27AE60')
         else:
             self.status_label.config(text="未激活", foreground='#E74C3C')
             self.expiry_label.config(text="N/A")

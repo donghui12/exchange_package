@@ -13,7 +13,7 @@ except ImportError:
     print("警告: openpyxl 未安装，Excel生成功能将不可用")
     Workbook = None
 
-from ..config import Config
+from src.config import Config
 
 class ExcelGenerator:
     """Excel文件生成器"""

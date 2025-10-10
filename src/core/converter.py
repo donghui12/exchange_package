@@ -11,7 +11,7 @@ from typing import Callable, Optional, Dict, Any
 from .data_parser import PDDDataParser
 from .downloader import ImageDownloader
 from .excel_generator import ExcelGenerator
-from ..config import Config
+from src.config import Config
 from ..utils.file_utils import FileUtils
 
 class MaterialConverter:

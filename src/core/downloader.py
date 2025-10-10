@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Callable, Optional
 from urllib.parse import urlparse
 
-from ..config import Config
+from src.config import Config
 
 class ImageDownloader:
     """图片下载器"""
