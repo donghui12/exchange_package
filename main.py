@@ -14,6 +14,23 @@ from src.gui.main_window import MaterialConverterApp
 from src.gui.license_dialog import LicenseDialog
 from src.utils.license_manager import LicenseManager
 
+import fcntl  # Linux/macOS 自带，Windows 也可用 pywin32 方案
+
+LOCK_FILE = os.path.join(os.path.expanduser("~"), ".pdd_material_converter.lock")
+
+def check_single_instance():
+    try:
+        global lock_file
+        lock_file = open(LOCK_FILE, 'w')
+        fcntl.lockf(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except (IOError, OSError):
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showwarning("程序已运行", "拼多多素材包转换工具已在运行中！")
+        root.destroy()
+        return False
+
 def check_license() -> bool:
     """
     检查软件授权
@@ -90,6 +107,8 @@ def show_license_dialog() -> bool:
 
 def main():
     """主程序入口"""
+    if not check_single_instance():
+        return
     try:
         # 首先检查授权
         if not check_license():
