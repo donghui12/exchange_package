@@ -27,12 +27,32 @@ class PDDDataParser:
         try:
             if not os.path.exists(file_path):
                 raise FileNotFoundError(f"文件不存在: {file_path}")
-                
-            with open(file_path, 'r', encoding='utf-8') as f:
-                self.data = json.load(f)
+            
+            # 尝试多种编码读取文件
+            encodings = ['gbk', 'utf-8', 'gb2312', 'latin1']
+            self.data = None
+            
+            for encoding in encodings:
+                try:
+                    with open(file_path, 'r', encoding=encoding) as f:
+                        self.data = json.load(f)
+                    print(f"使用编码 {encoding} 成功解析文件")
+                    break
+                except (UnicodeDecodeError, UnicodeError):
+                    continue
+                except json.JSONDecodeError as e:
+                    print(f"JSON解析错误 (编码:{encoding}): {e}")
+                    continue
+            
+            if self.data is None:
+                raise ValueError("无法使用任何编码解析文件")
                 
             # 提取商品基础信息
             self.goods_info = self.data.get('goods', {})
+            
+            if not self.goods_info:
+                raise ValueError("文件中未找到商品信息")
+                
             return True
             
         except (json.JSONDecodeError, FileNotFoundError, Exception) as e:

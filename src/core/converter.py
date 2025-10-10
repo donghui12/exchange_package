@@ -179,7 +179,7 @@ class MaterialConverter:
             batch_result['total_files'] = len(pdd_files)
             
             if not pdd_files:
-                self.log("未找到任何PDD数据文件 (pdd_goods_*.txt)")
+                self.log("未找到任何PDD数据文件 (*.txt)")
                 batch_result['success'] = False
                 return batch_result
             
@@ -291,7 +291,7 @@ class MaterialConverter:
             result['file_count'] = len(pdd_files)
             
             if not pdd_files:
-                result['error'] = "目录中未找到PDD数据文件 (pdd_goods_*.txt)"
+                result['error'] = "目录中未找到PDD数据文件 (*.txt)"
                 return result
             
             result['valid'] = True

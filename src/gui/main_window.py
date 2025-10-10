@@ -253,7 +253,7 @@ class MaterialConverterApp:
             ErrorDialog.show_error(
                 self.root, 
                 "输入错误", 
-                "在选择的目录中未找到PDD数据文件\\n\\n文件格式应为: pdd_goods_*.txt"
+                "在选择的目录中未找到PDD数据文件\\n\\n文件格式应为: *.txt"
             )
             return False
         
@@ -421,7 +421,7 @@ class MaterialConverterApp:
         """显示帮助信息"""
         help_text = (
             f"{Config.APP_NAME} 使用说明\\n\\n"
-            "1. 选择数据包文件夹: 选择包含pdd_goods_*.txt文件的文件夹\\n"
+            "1. 选择数据包文件夹: 选择包含*.txt文件的文件夹\\n"
             "2. 选择输出文件夹: 指定生成素材包的保存位置\\n"
             "3. 设置转换参数: 配置输出间隔、格式和压缩选项\\n"
             "4. 点击开始转换: 执行批量转换操作\\n\\n"
