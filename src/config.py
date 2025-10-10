@@ -14,7 +14,7 @@ class Config:
     # 默认设置
     DEFAULT_INTERVAL = 3  # 默认转换间隔(秒)
     DEFAULT_FORMAT = 2    # 默认导出格式(格式2)
-    DEFAULT_CREATE_ZIP = False  # 默认不创建zip压缩包
+    DEFAULT_CREATE_ZIP = True  # 默认创建zip压缩包
     
     # 文件夹名称配置
     FOLDER_NAMES = {

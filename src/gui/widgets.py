@@ -300,7 +300,7 @@ class SettingsFrame(ttk.LabelFrame):
         # 创建变量
         self.interval_var = tk.IntVar(value=3)
         self.format_var = tk.IntVar(value=2)
-        self.zip_var = tk.BooleanVar(value=False)
+        self.zip_var = tk.BooleanVar(value=True)
         
         # 创建控件
         self._create_widgets()

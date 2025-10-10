@@ -116,6 +116,12 @@ class MaterialConverter:
                 zip_path = f"{product_output_dir}.zip"
                 if self._create_zip_package(product_output_dir, zip_path):
                     self.log(f"ZIP压缩包创建成功: {os.path.basename(zip_path)}")
+                    # 删除原文件夹
+                try:
+                    shutil.rmtree(product_output_dir)
+                    self.log(f"已删除原文件夹: {folder_name}")
+                except Exception as del_err:
+                    self.log(f"删除文件夹失败: {del_err}")
                     result['zip_path'] = zip_path
                 else:
                     self.log("ZIP压缩包创建失败")
