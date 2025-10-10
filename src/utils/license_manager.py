@@ -22,7 +22,7 @@ try:
 except ImportError:
     # 如果配置文件不存在，使用默认配置
     class LicenseConfig:
-        LICENSE_SERVER_URL = "http://42.192.40.156:8080/v1/shopee"
+        LICENSE_SERVER_URL = "http://42.192.40.156:18080/v1/shopee"
         REQUEST_TIMEOUT = 10
         APP_NAME = "素材包转换工具"
         APP_VERSION = "1.0.0"
