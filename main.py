@@ -5,6 +5,7 @@ PDD Material Package Converter Main Program
 import sys
 import os
 import tkinter as tk
+import tempfile
 from tkinter import messagebox
 
 # 添加src目录到Python路径
@@ -14,53 +15,32 @@ from src.gui.main_window import MaterialConverterApp
 from src.gui.license_dialog import LicenseDialog
 from src.utils.license_manager import LicenseManager
 
-import fcntl  # Linux/macOS 自带，Windows 也可用 pywin32 方案
-
-LOCK_FILE = os.path.join(os.path.expanduser("~"), ".pdd_material_converter.lock")
-
-# Windows 独有
-if os.name == "nt":
-    import win32event
-    import win32api
-    import winerror
-else:
-    import fcntl
-
 class SingleInstance:
     """
-    防止重复运行的单例类
-    - Windows: 使用命名互斥量
-    - Linux/macOS: 使用 fcntl 文件锁
+    跨平台纯Python单实例实现（使用锁文件）
+    无需 pywin32 / fcntl
     """
-    def __init__(self, lock_name="material_converter.lock"):
-        self.lock_name = lock_name
-        self.lockfile = None
-        self.handle = None
+    def __init__(self, name="material_converter.lock"):
+        self.lockfile = os.path.join(tempfile.gettempdir(), name)
+        self.fd = None
 
-    def acquire(self) -> bool:
-        if os.name == "nt":
-            mutex_name = f"Global\\{self.lock_name}"
-            self.handle = win32event.CreateMutex(None, False, mutex_name)
-            last_error = win32api.GetLastError()
-            # ERROR_ALREADY_EXISTS 表示已有实例
-            return last_error != winerror.ERROR_ALREADY_EXISTS
-        else:
-            lock_path = os.path.join(tempfile.gettempdir(), self.lock_name)
-            self.lockfile = open(lock_path, "w")
+    def acquire(self):
+        if os.path.exists(self.lockfile):
             try:
-                fcntl.lockf(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                return True
-            except IOError:
+                os.remove(self.lockfile)
+            except:
                 return False
+        try:
+            self.fd = os.open(self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            return True
+        except FileExistsError:
+            return False
 
     def release(self):
-        if os.name == "nt":
-            if self.handle:
-                win32api.CloseHandle(self.handle)
-        else:
-            if self.lockfile:
-                fcntl.lockf(self.lockfile, fcntl.LOCK_UN)
-                self.lockfile.close()
+        if self.fd:
+            os.close(self.fd)
+        if os.path.exists(self.lockfile):
+            os.remove(self.lockfile)
 
 def check_license() -> bool:
     """
@@ -141,8 +121,6 @@ def main():
         # 防止重复运行
     instance = SingleInstance("pdd_converter_app")
     if not instance.acquire():
-        import tkinter as tk
-        from tkinter import messagebox
         root = tk.Tk()
         root.withdraw()
         messagebox.showwarning("提示", "程序已经在运行中！")
