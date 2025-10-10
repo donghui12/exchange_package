@@ -18,18 +18,49 @@ import fcntl  # Linux/macOS 自带，Windows 也可用 pywin32 方案
 
 LOCK_FILE = os.path.join(os.path.expanduser("~"), ".pdd_material_converter.lock")
 
-def check_single_instance():
-    try:
-        global lock_file
-        lock_file = open(LOCK_FILE, 'w')
-        fcntl.lockf(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return True
-    except (IOError, OSError):
-        root = tk.Tk()
-        root.withdraw()
-        messagebox.showwarning("程序已运行", "拼多多素材包转换工具已在运行中！")
-        root.destroy()
-        return False
+# Windows 独有
+if os.name == "nt":
+    import win32event
+    import win32api
+    import winerror
+else:
+    import fcntl
+
+class SingleInstance:
+    """
+    防止重复运行的单例类
+    - Windows: 使用命名互斥量
+    - Linux/macOS: 使用 fcntl 文件锁
+    """
+    def __init__(self, lock_name="material_converter.lock"):
+        self.lock_name = lock_name
+        self.lockfile = None
+        self.handle = None
+
+    def acquire(self) -> bool:
+        if os.name == "nt":
+            mutex_name = f"Global\\{self.lock_name}"
+            self.handle = win32event.CreateMutex(None, False, mutex_name)
+            last_error = win32api.GetLastError()
+            # ERROR_ALREADY_EXISTS 表示已有实例
+            return last_error != winerror.ERROR_ALREADY_EXISTS
+        else:
+            lock_path = os.path.join(tempfile.gettempdir(), self.lock_name)
+            self.lockfile = open(lock_path, "w")
+            try:
+                fcntl.lockf(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return True
+            except IOError:
+                return False
+
+    def release(self):
+        if os.name == "nt":
+            if self.handle:
+                win32api.CloseHandle(self.handle)
+        else:
+            if self.lockfile:
+                fcntl.lockf(self.lockfile, fcntl.LOCK_UN)
+                self.lockfile.close()
 
 def check_license() -> bool:
     """
@@ -107,7 +138,15 @@ def show_license_dialog() -> bool:
 
 def main():
     """主程序入口"""
-    if not check_single_instance():
+        # 防止重复运行
+    instance = SingleInstance("pdd_converter_app")
+    if not instance.acquire():
+        import tkinter as tk
+        from tkinter import messagebox
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showwarning("提示", "程序已经在运行中！")
+        root.destroy()
         return
     try:
         # 首先检查授权
