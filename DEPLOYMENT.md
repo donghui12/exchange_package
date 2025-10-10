@@ -48,7 +48,7 @@ pyinstaller material_converter.spec
 
 ```python
 # 开发环境 - 使用本地测试服务器
-LICENSE_SERVER_URL = "http://localhost:8000/api/license"
+LICENSE_SERVER_URL = "http://42.192.40.156:8000/v1/shopee"
 REQUEST_TIMEOUT = 30  # 开发环境延长超时
 ```
 

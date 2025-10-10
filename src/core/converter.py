@@ -110,15 +110,7 @@ class MaterialConverter:
             else:
                 self.log("Excel模板生成失败")
             
-            # 5. 生成汇总报告
-            if self.excel_generator.create_summary_sheet(
-                self.parser, 
-                product_output_dir, 
-                download_results
-            ):
-                self.log("汇总报告生成成功")
-            
-            # 6. 创建ZIP压缩包（可选）
+            # 5. 创建ZIP压缩包（可选）
             if create_zip:
                 self.log("创建ZIP压缩包...")
                 zip_path = f"{product_output_dir}.zip"
@@ -234,7 +226,7 @@ class MaterialConverter:
             return pdd_files
         
         for filename in os.listdir(directory):
-            if filename.startswith('pdd_goods_') and filename.endswith('.txt'):
+            if filename.endswith('.txt'):
                 file_path = os.path.join(directory, filename)
                 if os.path.isfile(file_path):
                     pdd_files.append(file_path)
@@ -246,19 +238,28 @@ class MaterialConverter:
     def _create_zip_package(self, source_dir: str, zip_path: str) -> bool:
         """创建ZIP压缩包"""
         try:
+            parent_dir = os.path.dirname(source_dir)
+
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(source_dir):
                     for file in files:
+                        if file.startswith('.') or file.lower() == 'thumbs.db':
+                            continue
                         file_path = os.path.join(root, file)
-                        arc_name = os.path.relpath(file_path, source_dir)
-                        zipf.write(file_path, arc_name)
-            
+                        # 让 zip 里包含顶层目录名
+                        arc_name = os.path.relpath(file_path, parent_dir)
+
+                        # 修正时间戳（避免某些系统拒绝解析）
+                        info = zipfile.ZipInfo(arc_name)
+                        info.date_time = time.localtime(time.time())[:6]
+                        with open(file_path, 'rb') as f:
+                            zipf.writestr(info, f.read())
+
             return True
-            
         except Exception as e:
-            self.log(f"创建ZIP压缩包失败: {str(e)}")
+            print(f"创建ZIP压缩包失败: {e}")
             return False
-    
+        
     def validate_input_directory(self, directory: str) -> Dict[str, Any]:
         """
         验证输入目录

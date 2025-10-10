@@ -221,7 +221,7 @@ class MaterialConverterApp:
         if path and os.path.exists(path):
             # 验证目录中是否有PDD文件
             pdd_files = [f for f in os.listdir(path) 
-                        if f.startswith('pdd_goods_') and f.endswith('.txt')]
+                        if f.endswith('.txt')]
             
             if pdd_files:
                 self.log_widget.append_log(f"找到 {len(pdd_files)} 个PDD文件", "INFO")
@@ -247,7 +247,7 @@ class MaterialConverterApp:
         
         # 检查PDD文件
         pdd_files = [f for f in os.listdir(input_path) 
-                    if f.startswith('pdd_goods_') and f.endswith('.txt')]
+                    if f.endswith('.txt')]
         
         if not pdd_files:
             ErrorDialog.show_error(

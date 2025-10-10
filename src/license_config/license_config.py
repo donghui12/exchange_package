@@ -6,7 +6,7 @@ class LicenseConfig:
     """授权配置类"""
     
     # 验证服务器配置
-    LICENSE_SERVER_URL = "http://localhost:8080/v1/shopee"
+    LICENSE_SERVER_URL = "http://42.192.40.156:8080/v1/shopee"
     
     # 超时设置（秒）
     REQUEST_TIMEOUT = 10
