@@ -17,6 +17,7 @@ from src.config import Config
 from src.utils.logger import get_ui_logger
 from .widgets import PathSelectWidget, ProgressWidget, LogWidget, SettingsFrame
 from .dialogs import SettingsDialog, AboutDialog, ErrorDialog
+from .license_dialog import LicenseManagerDialog
 
 class MaterialConverterApp:
     """素材包转换工具主应用程序类"""
@@ -184,6 +185,8 @@ class MaterialConverterApp:
         menubar.add_cascade(label="工具", menu=tools_menu)
         tools_menu.add_command(label="高级设置...", command=self._show_settings)
         tools_menu.add_command(label="清空日志", command=self._clear_log)
+        tools_menu.add_separator()
+        tools_menu.add_command(label="授权管理...", command=self._show_license_manager)
         
         # 帮助菜单
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -401,6 +404,18 @@ class MaterialConverterApp:
         
         if result:
             self.log_widget.append_log("高级设置已更新", "INFO")
+    
+    def _show_license_manager(self):
+        """显示授权管理对话框"""
+        try:
+            dialog = LicenseManagerDialog(self.root)
+            dialog.show()
+        except Exception as e:
+            ErrorDialog.show_error(
+                self.root,
+                "授权管理",
+                f"打开授权管理时发生错误:\n\n{str(e)}"
+            )
     
     def _show_help(self):
         """显示帮助信息"""
