@@ -24,7 +24,7 @@ except ImportError:
     class LicenseConfig:
         LICENSE_SERVER_URL = "http://42.192.40.156:18080/v1/shopee"
         REQUEST_TIMEOUT = 10
-        APP_NAME = "素材包转换工具"
+        APP_NAME = "秒转助手"
         APP_VERSION = "1.0.0"
         
         @classmethod
@@ -151,7 +151,7 @@ class LicenseManager:
         license_data = {
             "machine_code": machine_code,
             "expiry_date": expiry_date.isoformat(),
-            "app_name": "素材包转换工具",
+            "app_name": "秒转助手",
             "version": "1.0.0"
         }
         

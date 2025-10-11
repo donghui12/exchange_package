@@ -15,7 +15,7 @@ class LicenseConfig:
     REQUEST_TIMEOUT = 10
     
     # 📱 应用信息
-    APP_NAME = "素材包转换工具"
+    APP_NAME = "秒转助手"
     APP_VERSION = "1.0.0"
 ```
 
@@ -74,7 +74,7 @@ vim src/config/license_config.py
 cd build && pyinstaller material_converter.spec
 
 # 3. 分发可执行文件
-cp dist/素材包转换工具 /path/to/distribution/
+cp dist/秒转助手 /path/to/distribution/
 ```
 
 ### 2. 验证部署结果
@@ -84,7 +84,7 @@ cp dist/素材包转换工具 /path/to/distribution/
 # 1. 是否显示正确的服务器地址
 # 2. 网络连接是否正常
 # 3. 授权验证是否工作
-./素材包转换工具
+./秒转助手
 ```
 
 ## ⚠️ 注意事项

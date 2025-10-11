@@ -1,5 +1,5 @@
 """
-拼多多素材包转换工具主程序
+拼多多秒转助手主程序
 PDD Material Package Converter Main Program
 """
 import sys

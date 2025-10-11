@@ -12,7 +12,7 @@ class LicenseConfig:
     REQUEST_TIMEOUT = 10
     
     # 应用信息
-    APP_NAME = "素材包转换工具"
+    APP_NAME = "秒转助手"
     APP_VERSION = "1.0.0"
     
     # 用户代理

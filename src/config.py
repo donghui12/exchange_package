@@ -7,7 +7,7 @@ class Config:
     """应用配置类"""
     
     # 应用信息
-    APP_NAME = "素材包转换工具"
+    APP_NAME = "秒转助手"
     APP_VERSION = "1.0.0"
     APP_AUTHOR = "Material Converter Team"
     

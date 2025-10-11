@@ -1,4 +1,4 @@
-# 拼多多素材包转换工具 (PDD Material Package Converter)
+# 拼多多秒转助手 (PDD Material Package Converter)
 
 一个用于将拼多多商品导出数据转换为标准素材包格式的桌面应用工具。
 

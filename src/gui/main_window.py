@@ -20,7 +20,7 @@ from .dialogs import SettingsDialog, AboutDialog, ErrorDialog
 from .license_dialog import LicenseManagerDialog
 
 class MaterialConverterApp:
-    """素材包转换工具主应用程序类"""
+    """秒转助手主应用程序类"""
     
     def __init__(self):
         """初始化应用程序"""

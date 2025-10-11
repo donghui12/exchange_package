@@ -20,7 +20,7 @@ class LicenseConfig:
 ```json
 {
     "Content-Type": "application/json",
-    "User-Agent": "素材包转换工具/1.0.0"
+    "User-Agent": "秒转助手/1.0.0"
 }
 ```
 
@@ -29,7 +29,7 @@ class LicenseConfig:
 {
     "license_key": "用户输入的授权码",
     "machine_code": "基于硬件生成的电脑码",
-    "app_name": "素材包转换工具",
+    "app_name": "秒转助手",
     "app_version": "1.0.0",
     "action": "verify"
 }
