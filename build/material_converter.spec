@@ -29,7 +29,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='素材包转换工具',
+    name='秒转助手',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
