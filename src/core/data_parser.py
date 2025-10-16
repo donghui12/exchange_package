@@ -57,7 +57,17 @@ class PDDDataParser:
                 raise ValueError("无法使用任何编码解析文件")
                 
             # 提取商品基础信息
+            # 支持两种数据结构:
+            # 1. 直接的 goods 结构
+            # 2. store.initDataObj.goods 结构
             self.goods_info = self.data.get('goods', {})
+            
+            # 如果没有找到goods，尝试从store.initDataObj.goods中获取
+            if not self.goods_info and 'store' in self.data:
+                store = self.data['store']
+                if 'initDataObj' in store:
+                    init_data = store['initDataObj']
+                    self.goods_info = init_data.get('goods', {})
             
             if not self.goods_info:
                 raise ValueError("文件中未找到商品信息")
@@ -273,18 +283,39 @@ class PDDDataParser:
                 'quantity': 100  # 默认库存
             })
     
+    def _to_number(self, value) -> float:
+        """将值转换为数字"""
+        if isinstance(value, (int, float)):
+            return float(value)
+        elif isinstance(value, str):
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return 0.0
+        else:
+            return 0.0
+    
     def get_goods_basic_info(self) -> Dict[str, Any]:
         """获取商品基础信息"""
         if not self.goods_info:
             return {}
-            
+        
+        # 支持两种字段名格式:
+        # 1. 旧格式: goods_id, goods_name 等
+        # 2. 新格式: goodsID, goodsName 等
+        goods_id = self.goods_info.get('goods_id') or self.goods_info.get('goodsID', '')
+        goods_name = self.goods_info.get('goods_name') or self.goods_info.get('goodsName', '')
+        market_price = self.goods_info.get('market_price') or self.goods_info.get('marketPrice', 0)
+        cat_id = self.goods_info.get('cat_id') or self.goods_info.get('catID', '')
+        mall_id = self.goods_info.get('mall_id') or self.goods_info.get('mallID', '')
+        
         return {
-            'goods_id': self.goods_info.get('goods_id', ''),
-            'goods_name': self.goods_info.get('goods_name', '').strip(),
+            'goods_id': goods_id,
+            'goods_name': str(goods_name).strip() if goods_name else '',
             'short_name': self.goods_info.get('short_name', '').strip(),
-            'market_price': self.goods_info.get('market_price', 0),
-            'cat_id': self.goods_info.get('cat_id', ''),
-            'mall_id': self.goods_info.get('mall_id', ''),
+            'market_price': market_price,
+            'cat_id': cat_id,
+            'mall_id': mall_id,
             'quantity': self.goods_info.get('quantity', 0),
             'sold_quantity': self.goods_info.get('sold_quantity', 0),
             'customer_num': self.goods_info.get('customer_num', 0)
@@ -308,9 +339,29 @@ class PDDDataParser:
         """获取主图列表"""
         if not self.goods_info:
             return []
-            
-        gallery = self.goods_info.get('gallery', [])
+        
         main_images = []
+        
+        # 新格式：使用topGallery作为主图
+        if 'topGallery' in self.goods_info:
+            top_gallery = self.goods_info['topGallery']
+            for i, img in enumerate(top_gallery):
+                img_info = {
+                    'url': img.get('url', ''),
+                    'width': img.get('width', 0),
+                    'height': img.get('height', 0),
+                    'priority': i,
+                    'type': 'topGallery',
+                    'aspect_ratio': img.get('aspectRatio', 1)
+                }
+                if img_info['url']:
+                    main_images.append(img_info)
+            
+            if main_images:
+                return main_images
+        
+        # 旧格式：从gallery中提取主图
+        gallery = self.goods_info.get('gallery', [])
         
         # 不同商品可能使用不同的type值表示主图
         # 常见的主图类型: 1, 13
@@ -367,9 +418,27 @@ class PDDDataParser:
         """获取详情图列表"""
         if not self.goods_info:
             return []
-            
-        decoration = self.goods_info.get('decoration', [])
+        
         detail_images = []
+        
+        # 新格式：使用detailGallery作为详情图
+        if 'detailGallery' in self.goods_info:
+            detail_gallery = self.goods_info['detailGallery']
+            for i, img in enumerate(detail_gallery):
+                img_info = {
+                    'url': img.get('url', ''),
+                    'width': img.get('width', 0),
+                    'height': img.get('height', 0),
+                    'priority': i
+                }
+                if img_info['url']:
+                    detail_images.append(img_info)
+            
+            if detail_images:
+                return detail_images
+        
+        # 旧格式：从decoration中提取详情图
+        decoration = self.goods_info.get('decoration', [])
         
         for item in decoration:
             if item.get('type') == 'image':
@@ -393,9 +462,36 @@ class PDDDataParser:
         """获取SKU信息"""
         if not self.data:
             return []
-            
-        sku_list = self.data.get('sku', [])
+        
         sku_info = []
+        
+        # 新格式：从goods.skus中获取SKU信息
+        if self.goods_info and 'skus' in self.goods_info:
+            skus = self.goods_info['skus']
+            for sku in skus:
+                specs = sku.get('specs', [])
+                spec_text = ''
+                if specs:
+                    spec_values = [spec.get('spec_value', '') for spec in specs]
+                    spec_text = '_'.join(filter(None, spec_values))
+                
+                sku_data = {
+                    'sku_id': sku.get('skuId') or sku.get('sku_id', ''),
+                    'spec': spec_text,
+                    'price': self._to_number(sku.get('price', 0)),
+                    'normal_price': self._to_number(sku.get('normalPrice') or sku.get('normal_price', 0)),
+                    'group_price': self._to_number(sku.get('groupPrice') or sku.get('group_price', 0)),
+                    'quantity': sku.get('quantity', 0),
+                    'thumb_url': sku.get('thumbUrl') or sku.get('thumb_url', ''),
+                    'specs': specs
+                }
+                sku_info.append(sku_data)
+            
+            if sku_info:
+                return sku_info
+        
+        # 旧格式：从data.sku中获取SKU信息
+        sku_list = self.data.get('sku', [])
         
         for sku in sku_list:
             specs = sku.get('specs', [])
@@ -407,9 +503,9 @@ class PDDDataParser:
             sku_data = {
                 'sku_id': sku.get('sku_id', ''),
                 'spec': spec_text,
-                'price': sku.get('price', 0),
-                'normal_price': sku.get('normal_price', 0),
-                'group_price': sku.get('group_price', 0),
+                'price': self._to_number(sku.get('price', 0)),
+                'normal_price': self._to_number(sku.get('normal_price', 0)),
+                'group_price': self._to_number(sku.get('group_price', 0)),
                 'quantity': sku.get('quantity', 0),
                 'thumb_url': sku.get('thumb_url', ''),
                 'specs': specs
