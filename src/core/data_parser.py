@@ -191,20 +191,41 @@ class PDDDataParser:
             return text
             
         try:
-            # 如果文本包含乱码字符，尝试重新编码
+            # 检查是否包含明显的乱码字符
             if any(ord(c) > 127 for c in text):
-                # 尝试不同的编码方式
-                encodings = ['utf-8', 'gbk', 'gb2312', 'latin1']
-                for encoding in encodings:
+                # 常见的编码修复组合
+                fix_combinations = [
+                    ('latin1', 'utf-8'),
+                    ('latin1', 'gbk'),
+                    ('latin1', 'gb2312'),
+                    ('iso-8859-1', 'utf-8'),
+                    ('iso-8859-1', 'gbk'),
+                    ('cp1252', 'utf-8'),
+                    ('cp1252', 'gbk'),
+                ]
+                
+                for from_encoding, to_encoding in fix_combinations:
                     try:
-                        # 将字符串编码为bytes再解码
-                        fixed_text = text.encode('latin1').decode(encoding)
-                        if not any(c in fixed_text for c in '��'):  # 避免明显的乱码
+                        # 将字符串编码为bytes再用正确编码解码
+                        fixed_text = text.encode(from_encoding).decode(to_encoding)
+                        # 检查修复是否成功（包含常见中文字符）
+                        if any(char in fixed_text for char in ['救生', '商品', '包装', '装备', '产品', '用品']):
+                            print(f"编码修复成功: {from_encoding} -> {to_encoding}")
                             return fixed_text
-                    except:
+                        # 检查是否有正常的中文字符范围
+                        if any('\u4e00' <= c <= '\u9fff' for c in fixed_text):
+                            print(f"编码修复成功: {from_encoding} -> {to_encoding}")
+                            return fixed_text
+                    except (UnicodeDecodeError, UnicodeEncodeError):
                         continue
-        except:
-            pass
+                
+                # 如果无法修复，尝试移除非ASCII字符
+                ascii_text = ''.join(c for c in text if ord(c) < 128)
+                if ascii_text:
+                    print("编码修复失败，使用ASCII部分")
+                    return ascii_text
+        except Exception as e:
+            print(f"编码修复异常: {e}")
             
         return text
     
@@ -309,9 +330,13 @@ class PDDDataParser:
         cat_id = self.goods_info.get('cat_id') or self.goods_info.get('catID', '')
         mall_id = self.goods_info.get('mall_id') or self.goods_info.get('mallID', '')
         
+        # 修复商品名称的编码问题
+        if goods_name:
+            goods_name = self._fix_encoding(str(goods_name))
+        
         return {
             'goods_id': goods_id,
-            'goods_name': str(goods_name).strip() if goods_name else '',
+            'goods_name': goods_name.strip() if goods_name else '',
             'short_name': self.goods_info.get('short_name', '').strip(),
             'market_price': market_price,
             'cat_id': cat_id,
@@ -537,15 +562,45 @@ class PDDDataParser:
         goods_info = self.get_goods_basic_info()
         goods_name = goods_info.get('goods_name', '')
         
-        # 清理文件名中的非法字符
-        illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
+        if not goods_name:
+            return '未知商品'
+        
+        # 清理文件名中的非法字符（Windows + macOS + Linux兼容）
+        illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t']
         clean_name = goods_name
+        
+        # 替换非法字符
         for char in illegal_chars:
             clean_name = clean_name.replace(char, '_')
-            
-        # 限制长度避免路径过长
-        if len(clean_name) > 50:
-            clean_name = clean_name[:50]
+        
+        # 移除开头和结尾的空格和点号（Windows不允许）
+        clean_name = clean_name.strip(' .')
+        
+        # 处理Windows保留文件名
+        windows_reserved = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 
+                           'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 
+                           'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']
+        if clean_name.upper() in windows_reserved:
+            clean_name = f"商品_{clean_name}"
+        
+        # 限制长度，为文件扩展名和ID留出空间
+        # Windows路径限制255字符，留出足够空间给"_商品ID.zip"等
+        max_length = 200
+        if len(clean_name.encode('utf-8')) > max_length:
+            # 按字节截取，确保不会截断中文字符
+            encoded = clean_name.encode('utf-8')
+            truncated = encoded[:max_length]
+            # 找到最后一个完整的UTF-8字符
+            while len(truncated) > 0:
+                try:
+                    clean_name = truncated.decode('utf-8')
+                    break
+                except UnicodeDecodeError:
+                    truncated = truncated[:-1]
+        
+        # 确保不为空
+        if not clean_name.strip():
+            clean_name = '商品'
             
         return clean_name.strip()
     

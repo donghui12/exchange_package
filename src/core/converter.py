@@ -246,7 +246,7 @@ class MaterialConverter:
         try:
             parent_dir = os.path.dirname(source_dir)
 
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zipf:
                 for root, dirs, files in os.walk(source_dir):
                     for file in files:
                         if file.startswith('.') or file.lower() == 'thumbs.db':
@@ -254,18 +254,69 @@ class MaterialConverter:
                         file_path = os.path.join(root, file)
                         # 让 zip 里包含顶层目录名
                         arc_name = os.path.relpath(file_path, parent_dir)
-
-                        # 修正时间戳（避免某些系统拒绝解析）
-                        info = zipfile.ZipInfo(arc_name)
-                        info.date_time = time.localtime(time.time())[:6]
-                        with open(file_path, 'rb') as f:
-                            zipf.writestr(info, f.read())
+                        
+                        # Windows中文文件名兼容处理
+                        try:
+                            # 确保路径使用正斜杠（ZIP标准）
+                            arc_name = arc_name.replace('\\', '/')
+                            
+                            # 修正时间戳（避免某些系统拒绝解析）
+                            info = zipfile.ZipInfo(arc_name)
+                            info.date_time = time.localtime(time.time())[:6]
+                            
+                            # 设置UTF-8编码标志，支持中文文件名
+                            info.flag_bits |= 0x800  # UTF-8 flag
+                            
+                            with open(file_path, 'rb') as f:
+                                zipf.writestr(info, f.read())
+                                
+                        except Exception as e:
+                            print(f"添加文件到ZIP失败: {file_path}, 错误: {e}")
+                            # 尝试使用安全的文件名
+                            safe_name = self._make_safe_zip_filename(arc_name)
+                            info = zipfile.ZipInfo(safe_name)
+                            info.date_time = time.localtime(time.time())[:6]
+                            with open(file_path, 'rb') as f:
+                                zipf.writestr(info, f.read())
 
             return True
         except Exception as e:
             print(f"创建ZIP压缩包失败: {e}")
             return False
         
+    def _make_safe_zip_filename(self, filename: str) -> str:
+        """生成ZIP文件安全的文件名"""
+        import re
+        
+        # 移除或替换可能有问题的字符
+        safe_name = filename
+        
+        # 替换Windows路径分隔符
+        safe_name = safe_name.replace('\\', '/')
+        
+        # 移除控制字符
+        safe_name = re.sub(r'[\x00-\x1f\x7f]', '', safe_name)
+        
+        # 如果包含非ASCII字符，尝试转换为安全形式
+        try:
+            safe_name.encode('ascii')
+        except UnicodeEncodeError:
+            # 包含非ASCII字符，使用URL编码形式
+            import urllib.parse
+            parts = safe_name.split('/')
+            encoded_parts = []
+            for part in parts:
+                try:
+                    part.encode('ascii')
+                    encoded_parts.append(part)
+                except UnicodeEncodeError:
+                    # 对非ASCII部分进行编码
+                    encoded_part = urllib.parse.quote(part.encode('utf-8'))
+                    encoded_parts.append(encoded_part)
+            safe_name = '/'.join(encoded_parts)
+        
+        return safe_name
+    
     def validate_input_directory(self, directory: str) -> Dict[str, Any]:
         """
         验证输入目录
