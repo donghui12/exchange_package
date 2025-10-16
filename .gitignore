@@ -1,5 +1,7 @@
 logs/
 build/material_converter/
+build/dist/
+build/build/
 examples/
 *.dat
 *.json
