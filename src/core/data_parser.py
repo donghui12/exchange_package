@@ -209,7 +209,7 @@ class PDDDataParser:
                         # 将字符串编码为bytes再用正确编码解码
                         fixed_text = text.encode(from_encoding).decode(to_encoding)
                         # 检查修复是否成功（包含常见中文字符）
-                        if any(char in fixed_text for char in ['救生', '商品', '包装', '装备', '产品', '用品']):
+                        if any(char in fixed_text for char in ['救生', '商品', '包装', '装备', '产品', '用品', '手动', '自动', '红色', '橙色', '黄色', '充气', '腰带', '逗猫', '钢丝']):
                             print(f"编码修复成功: {from_encoding} -> {to_encoding}")
                             return fixed_text
                         # 检查是否有正常的中文字符范围
@@ -303,6 +303,26 @@ class PDDDataParser:
                 'specs': [{'spec_key': '颜色', 'spec_value': f'规格{i+1}'}],
                 'quantity': 100  # 默认库存
             })
+    
+    def _smart_convert_price(self, price: float) -> float:
+        """智能转换价格单位"""
+        if price <= 0:
+            return 0.0
+        
+        # 如果价格大于1000，很可能是以分为单位，需要转换为元
+        if price > 1000:
+            return price / 100
+        
+        # 如果价格在合理的元单位范围内（1-1000），直接使用
+        if 1 <= price <= 1000:
+            return price
+        
+        # 如果价格很小（0.1-1），可能已经是元单位的小数
+        if 0.1 <= price < 1:
+            return price
+        
+        # 其他情况，保持原值
+        return price
     
     def _to_number(self, value) -> float:
         """将值转换为数字"""
@@ -497,15 +517,34 @@ class PDDDataParser:
                 specs = sku.get('specs', [])
                 spec_text = ''
                 if specs:
-                    spec_values = [spec.get('spec_value', '') for spec in specs]
+                    spec_values = []
+                    for spec in specs:
+                        spec_value = spec.get('spec_value', '')
+                        if spec_value:
+                            # 修复规格文本的编码问题
+                            spec_value = self._fix_encoding(str(spec_value))
+                            spec_values.append(spec_value)
                     spec_text = '_'.join(filter(None, spec_values))
+                
+                # 价格处理 - 智能判断价格单位
+                group_price_raw = self._to_number(sku.get('groupPrice') or sku.get('group_price', 0))
+                normal_price_raw = self._to_number(sku.get('normalPrice') or sku.get('normal_price', 0))
+                price_raw = self._to_number(sku.get('price', 0))
+                
+                # 智能判断价格单位：
+                # 1. 如果价格 > 1000，可能是以分为单位，除以100转换为元
+                # 2. 如果价格 <= 1000 且 > 0，可能已经是元单位，保持不变
+                # 3. 特殊情况：如果拼团价和单买价都很小(<100)且合理，直接使用
+                group_price = self._smart_convert_price(group_price_raw)
+                normal_price = self._smart_convert_price(normal_price_raw)  
+                price = self._smart_convert_price(price_raw)
                 
                 sku_data = {
                     'sku_id': sku.get('skuId') or sku.get('sku_id', ''),
                     'spec': spec_text,
-                    'price': self._to_number(sku.get('price', 0)),
-                    'normal_price': self._to_number(sku.get('normalPrice') or sku.get('normal_price', 0)),
-                    'group_price': self._to_number(sku.get('groupPrice') or sku.get('group_price', 0)),
+                    'price': price,
+                    'normal_price': normal_price,
+                    'group_price': group_price,
                     'quantity': sku.get('quantity', 0),
                     'thumb_url': sku.get('thumbUrl') or sku.get('thumb_url', ''),
                     'specs': specs
@@ -522,15 +561,33 @@ class PDDDataParser:
             specs = sku.get('specs', [])
             spec_text = ''
             if specs:
-                spec_values = [spec.get('spec_value', '') for spec in specs]
+                spec_values = []
+                for spec in specs:
+                    spec_value = spec.get('spec_value', '')
+                    if spec_value:
+                        # 修复规格文本的编码问题
+                        spec_value = self._fix_encoding(str(spec_value))
+                        spec_values.append(spec_value)
                 spec_text = '_'.join(filter(None, spec_values))
+            
+            # 价格处理 - 智能判断价格单位
+            group_price_raw = self._to_number(sku.get('group_price', 0))
+            normal_price_raw = self._to_number(sku.get('normal_price', 0))
+            price_raw = self._to_number(sku.get('price', 0))
+            
+            # 智能判断价格单位：
+            # 1. 如果价格 > 1000，可能是以分为单位，除以100转换为元
+            # 2. 如果价格 <= 1000 且 > 0，可能已经是元单位，保持不变
+            group_price = self._smart_convert_price(group_price_raw)
+            normal_price = self._smart_convert_price(normal_price_raw)
+            price = self._smart_convert_price(price_raw)
             
             sku_data = {
                 'sku_id': sku.get('sku_id', ''),
                 'spec': spec_text,
-                'price': self._to_number(sku.get('price', 0)),
-                'normal_price': self._to_number(sku.get('normal_price', 0)),
-                'group_price': self._to_number(sku.get('group_price', 0)),
+                'price': price,
+                'normal_price': normal_price,
+                'group_price': group_price,
                 'quantity': sku.get('quantity', 0),
                 'thumb_url': sku.get('thumb_url', ''),
                 'specs': specs

@@ -80,25 +80,35 @@ class ExcelGenerator:
             ws.cell(row=row, column=7, value="")  # 货源类目（待填写）
             ws.cell(row=row, column=8, value="")  # 属性（待填写）
             
-            # SKU规格处理
+            # SKU规格处理（应用编码修复）
             if first_sku:
                 specs = first_sku.get('specs', [])
                 if len(specs) >= 1:
-                    ws.cell(row=row, column=9, value=specs[0].get('spec_value', ''))  # SKU规格1
+                    spec_value = specs[0].get('spec_value', '')
+                    fixed_spec_value = parser._fix_encoding(str(spec_value)) if spec_value else ''
+                    ws.cell(row=row, column=9, value=fixed_spec_value)  # SKU规格1
                 if len(specs) >= 2:
-                    ws.cell(row=row, column=10, value=specs[1].get('spec_value', ''))  # SKU规格2
+                    spec_value = specs[1].get('spec_value', '')
+                    fixed_spec_value = parser._fix_encoding(str(spec_value)) if spec_value else ''
+                    ws.cell(row=row, column=10, value=fixed_spec_value)  # SKU规格2
                 
-                # 生成平台SKU
-                spec_values = [spec.get('spec_value', '') for spec in specs if spec.get('spec_value')]
+                # 生成平台SKU（应用编码修复）
+                spec_values = []
+                for spec in specs:
+                    spec_value = spec.get('spec_value', '')
+                    if spec_value:
+                        # 应用编码修复
+                        fixed_spec_value = parser._fix_encoding(str(spec_value))
+                        spec_values.append(fixed_spec_value)
                 platform_sku = "-".join(spec_values) if spec_values else "默认"
                 ws.cell(row=row, column=11, value=platform_sku)  # 平台SKU
                 
-                ws.cell(row=row, column=12, value=first_sku.get('group_price', 0) / 100)  # * SKU售价
+                ws.cell(row=row, column=12, value=first_sku.get('group_price', 0))  # * SKU售价（已转换为元）
             else:
                 ws.cell(row=row, column=9, value="")  # SKU规格1
                 ws.cell(row=row, column=10, value="")  # SKU规格2
                 ws.cell(row=row, column=11, value="默认")  # 平台SKU
-                ws.cell(row=row, column=12, value=price_info.get('min_group_price', 0) / 100)  # * SKU售价
+                ws.cell(row=row, column=12, value=price_info.get('min_group_price', 0) / 100)  # * SKU售价（price_info中的价格是分）
             
             ws.cell(row=row, column=13, value=999)  # SKU库存（默认值）
             ws.cell(row=row, column=14, value=0.5)  # SKU重量(KG)（默认值）
@@ -117,19 +127,29 @@ class ExcelGenerator:
                 ws.cell(row=row, column=7, value="")  # 货源类目（空）
                 ws.cell(row=row, column=8, value="")  # 属性（空）
                 
-                # SKU规格处理
+                # SKU规格处理（应用编码修复）
                 specs = sku.get('specs', [])
                 if len(specs) >= 1:
-                    ws.cell(row=row, column=9, value=specs[0].get('spec_value', ''))  # SKU规格1
+                    spec_value = specs[0].get('spec_value', '')
+                    fixed_spec_value = parser._fix_encoding(str(spec_value)) if spec_value else ''
+                    ws.cell(row=row, column=9, value=fixed_spec_value)  # SKU规格1
                 if len(specs) >= 2:
-                    ws.cell(row=row, column=10, value=specs[1].get('spec_value', ''))  # SKU规格2
+                    spec_value = specs[1].get('spec_value', '')
+                    fixed_spec_value = parser._fix_encoding(str(spec_value)) if spec_value else ''
+                    ws.cell(row=row, column=10, value=fixed_spec_value)  # SKU规格2
                 
-                # 生成平台SKU
-                spec_values = [spec.get('spec_value', '') for spec in specs if spec.get('spec_value')]
+                # 生成平台SKU（应用编码修复）
+                spec_values = []
+                for spec in specs:
+                    spec_value = spec.get('spec_value', '')
+                    if spec_value:
+                        # 应用编码修复
+                        fixed_spec_value = parser._fix_encoding(str(spec_value))
+                        spec_values.append(fixed_spec_value)
                 platform_sku = "-".join(spec_values) if spec_values else "默认"
                 ws.cell(row=row, column=11, value=platform_sku)  # 平台SKU
                 
-                ws.cell(row=row, column=12, value=sku.get('group_price', 0) / 100)  # * SKU售价
+                ws.cell(row=row, column=12, value=sku.get('group_price', 0))  # * SKU售价（已转换为元）
                 ws.cell(row=row, column=13, value=999)  # SKU库存（默认值）
                 ws.cell(row=row, column=14, value=0.5)  # SKU重量(KG)（默认值）
                 ws.cell(row=row, column=15, value="")  # SKU尺寸(CM)（待填写）
