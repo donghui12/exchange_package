@@ -188,15 +188,8 @@ class LicenseManager:
                 "active_code": license_key,
                 "machine_code": machine_code,
             }
-            print("url:", LicenseConfig.get_verify_url())
-
-            print("payload:", payload)
-            
             response = requests.get(LicenseConfig.get_verify_url(),params=payload)
-            print("response:", response.status_code)
-            
             result = response.json()
-            print("this is resp", result)
             
             if result.get("code", 0) == 200:
                 # 解析过期时间

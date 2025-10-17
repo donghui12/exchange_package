@@ -304,6 +304,12 @@ class PDDDataParser:
                 'quantity': 100  # 默认库存
             })
     
+    def _generate_goods_url(self, goods_id) -> str:
+        """生成商品链接"""
+        if not goods_id:
+            return ''
+        return f'https://mobile.yangkeduo.com/goods.html?goods_id={goods_id}'
+    
     def _smart_convert_price(self, price: float) -> float:
         """智能转换价格单位"""
         if price <= 0:
@@ -357,6 +363,7 @@ class PDDDataParser:
         return {
             'goods_id': goods_id,
             'goods_name': goods_name.strip() if goods_name else '',
+            'goods_url': self._generate_goods_url(goods_id),
             'short_name': self.goods_info.get('short_name', '').strip(),
             'market_price': market_price,
             'cat_id': cat_id,
