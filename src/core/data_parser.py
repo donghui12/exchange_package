@@ -373,6 +373,7 @@ class PDDDataParser:
     
     def _smart_convert_price(self, price: float) -> float:
         """智能转换价格单位"""
+        return price / 100
         if price <= 0:
             return 0.0
         
