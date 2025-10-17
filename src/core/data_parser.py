@@ -31,6 +31,7 @@ class PDDDataParser:
             # 尝试多种编码读取文件
             encodings = ['gbk', 'utf-8', 'gb2312', 'latin1']
             self.data = None
+            self.file_encoding = None  # 记录成功的编码
             
             for encoding in encodings:
                 try:
@@ -40,13 +41,16 @@ class PDDDataParser:
                     # 尝试解析完整JSON
                     try:
                         self.data = json.loads(content)
+                        self.file_encoding = encoding
                         print(f"使用编码 {encoding} 成功解析完整JSON")
-                        break
+                        break  # JSON解析成功就可以了，不强制要求中文正确
+                            
                     except json.JSONDecodeError as e:
                         print(f"JSON解析错误 (编码:{encoding}): {e}")
                         
                         # 尝试修复不完整的JSON
                         if self._try_fix_incomplete_json(content, encoding):
+                            self.file_encoding = encoding
                             print(f"使用编码 {encoding} 成功解析部分数据")
                             break
                         
@@ -185,23 +189,82 @@ class PDDDataParser:
             print(f"提取基本信息失败: {e}")
             return False
     
+    def _validate_chinese_content(self) -> bool:
+        """验证中文内容是否正确解析"""
+        if not self.data:
+            return False
+        
+        try:
+            # 检查商品名称
+            goods_name = ""
+            if 'goods' in self.data:
+                goods_name = self.data['goods'].get('goods_name', '')
+            elif 'store' in self.data:
+                store = self.data['store']
+                if 'initDataObj' in store and 'goods' in store['initDataObj']:
+                    goods_name = store['initDataObj']['goods'].get('goodsName', '')
+            
+            # 检查SKU规格
+            sku_specs = []
+            if 'sku' in self.data:
+                for sku in self.data['sku'][:3]:  # 检查前3个SKU
+                    specs = sku.get('specs', [])
+                    for spec in specs:
+                        spec_value = spec.get('spec_value', '')
+                        if spec_value:
+                            sku_specs.append(spec_value)
+            elif 'store' in self.data:
+                store = self.data['store']
+                if 'initDataObj' in store and 'goods' in store['initDataObj']:
+                    goods = store['initDataObj']['goods']
+                    if 'skus' in goods:
+                        for sku in goods['skus'][:3]:
+                            specs = sku.get('specs', [])
+                            for spec in specs:
+                                spec_value = spec.get('spec_value', '')
+                                if spec_value:
+                                    sku_specs.append(spec_value)
+            
+            # 验证是否包含正确的中文字符，而不是乱码
+            test_texts = [goods_name] + sku_specs
+            for text in test_texts:
+                if text and len(text) > 0:
+                    # 检查是否包含正确的中文字符
+                    if any('\u4e00' <= c <= '\u9fff' for c in text):
+                        # 检查是否包含典型的乱码标志
+                        if '锟斤拷' not in text and '�' not in text:
+                            return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"验证中文内容时出错: {e}")
+            return False
+    
     def _fix_encoding(self, text: str) -> str:
-        """尝试修复编码问题"""
+        """修复编码问题"""
         if not text:
             return text
             
         try:
+            # 检查是否已经是正确的中文
+            if any('\u4e00' <= c <= '\u9fff' for c in text):
+                return text
+            
             # 检查是否包含明显的乱码字符
             if any(ord(c) > 127 for c in text):
                 # 常见的编码修复组合
                 fix_combinations = [
-                    ('latin1', 'utf-8'),
+                    ('utf-8', 'gbk'),       # UTF-8读取，实际是GBK内容
+                    ('utf-8', 'gb2312'),    # UTF-8读取，实际是GB2312内容
                     ('latin1', 'gbk'),
                     ('latin1', 'gb2312'),
-                    ('iso-8859-1', 'utf-8'),
+                    ('latin1', 'utf-8'),
                     ('iso-8859-1', 'gbk'),
-                    ('cp1252', 'utf-8'),
+                    ('iso-8859-1', 'gb2312'),
+                    ('iso-8859-1', 'utf-8'),
                     ('cp1252', 'gbk'),
+                    ('cp1252', 'gb2312'),
                 ]
                 
                 for from_encoding, to_encoding in fix_combinations:
@@ -209,12 +272,10 @@ class PDDDataParser:
                         # 将字符串编码为bytes再用正确编码解码
                         fixed_text = text.encode(from_encoding).decode(to_encoding)
                         # 检查修复是否成功（包含常见中文字符）
-                        if any(char in fixed_text for char in ['救生', '商品', '包装', '装备', '产品', '用品', '手动', '自动', '红色', '橙色', '黄色', '充气', '腰带', '逗猫', '钢丝']):
-                            print(f"编码修复成功: {from_encoding} -> {to_encoding}")
+                        if any(char in fixed_text for char in ['救生', '商品', '包装', '装备', '产品', '用品', '手动', '自动', '红色', '橙色', '黄色', '充气', '腰带', '逗猫', '钢丝', '巴布豆', '双肩包', '书包', '颜色', '小号', '大号', '紫色', '蓝色']):
                             return fixed_text
                         # 检查是否有正常的中文字符范围
                         if any('\u4e00' <= c <= '\u9fff' for c in fixed_text):
-                            print(f"编码修复成功: {from_encoding} -> {to_encoding}")
                             return fixed_text
                     except (UnicodeDecodeError, UnicodeEncodeError):
                         continue
@@ -222,8 +283,8 @@ class PDDDataParser:
                 # 如果无法修复，尝试移除非ASCII字符
                 ascii_text = ''.join(c for c in text if ord(c) < 128)
                 if ascii_text:
-                    print("编码修复失败，使用ASCII部分")
                     return ascii_text
+                    
         except Exception as e:
             print(f"编码修复异常: {e}")
             
