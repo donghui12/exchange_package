@@ -10,6 +10,7 @@ from typing import Callable, Optional, Dict, Any
 
 from .data_parser import PDDDataParser
 from .downloader import ImageDownloader
+from .video_downloader import VideoDownloader
 from .excel_generator import ExcelGenerator
 from src.config import Config
 from ..utils.file_utils import FileUtils
@@ -27,6 +28,7 @@ class MaterialConverter:
         self.progress_callback = progress_callback
         self.parser = PDDDataParser()
         self.downloader = ImageDownloader(progress_callback=progress_callback)
+        self.video_downloader = VideoDownloader()
         self.excel_generator = ExcelGenerator()
         self.file_utils = FileUtils()
         
@@ -98,6 +100,11 @@ class MaterialConverter:
             )
             
             result['download_results'] = download_results
+            
+            # 3.5. 下载视频
+            self.log("开始下载商品视频...")
+            video_results = self._download_videos(product_output_dir)
+            result['video_results'] = video_results
             
             # 4. 生成Excel文件
             self.log("生成Excel导入模板...")
@@ -359,7 +366,88 @@ class MaterialConverter:
         
         return result
     
+    def _download_videos(self, output_dir: str) -> Dict[str, Any]:
+        """
+        下载商品视频
+        
+        Args:
+            output_dir: 输出目录
+            
+        Returns:
+            Dict: 视频下载结果
+        """
+        result = {
+            'success': False,
+            'total_videos': 0,
+            'downloaded_videos': 0,
+            'skipped_videos': 0,
+            'failed_videos': 0,
+            'video_files': [],
+            'thumbnail_files': [],
+            'errors': []
+        }
+        
+        try:
+            # 获取所有视频
+            videos = self.parser.get_videos()
+            result['total_videos'] = len(videos)
+            
+            if not videos:
+                self.log("未找到视频文件")
+                result['success'] = True
+                return result
+            
+            self.log(f"发现 {len(videos)} 个视频文件")
+            
+            # 创建视频下载目录
+            video_dir = os.path.join(output_dir, "产品视频")
+            
+            # 下载视频
+            video_results = self.video_downloader.download_videos_batch(
+                videos, video_dir, ""
+            )
+            
+            # 处理下载结果
+            for video_result in video_results:
+                if video_result['success']:
+                    if video_result.get('skipped'):
+                        result['skipped_videos'] += 1
+                    else:
+                        result['downloaded_videos'] += 1
+                    result['video_files'].append(video_result['file_path'])
+                else:
+                    result['failed_videos'] += 1
+                    result['errors'].append(video_result['error'])
+            
+            # 下载视频缩略图
+            self.log("开始下载视频缩略图...")
+            thumbnail_results = self.video_downloader.download_thumbnails(
+                videos, video_dir, ""
+            )
+            
+            # 处理缩略图下载结果
+            for thumb_result in thumbnail_results:
+                if thumb_result['success']:
+                    result['thumbnail_files'].append(thumb_result['file_path'])
+            
+            self.log(f"视频下载完成: {result['downloaded_videos']}/{result['total_videos']} 成功")
+            if result['skipped_videos'] > 0:
+                self.log(f"跳过已存在视频: {result['skipped_videos']} 个")
+            if result['failed_videos'] > 0:
+                self.log(f"下载失败: {result['failed_videos']} 个")
+            
+            result['success'] = True
+            
+        except Exception as e:
+            error_msg = f"视频下载失败: {str(e)}"
+            self.log(error_msg)
+            result['errors'].append(error_msg)
+        
+        return result
+    
     def cleanup(self):
         """清理资源"""
         if hasattr(self, 'downloader'):
             self.downloader.close()
+        if hasattr(self, 'video_downloader'):
+            self.video_downloader.close()

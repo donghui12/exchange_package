@@ -572,6 +572,59 @@ class PDDDataParser:
         detail_images.sort(key=lambda x: x['priority'])
         return detail_images
     
+    def get_videos(self) -> List[Dict[str, Any]]:
+        """获取视频列表"""
+        if not self.goods_info:
+            return []
+        
+        videos = []
+        
+        # 从gallery中提取视频
+        gallery = self.goods_info.get('gallery', [])
+        
+        for item in gallery:
+            # 检查是否有视频URL
+            video_url = item.get('video_url', '')
+            if video_url:
+                # 这是视频项目
+                video_info = {
+                    'url': video_url,
+                    'thumbnail': item.get('url', ''),  # 视频缩略图
+                    'width': item.get('width', 0),
+                    'height': item.get('height', 0),
+                    'priority': item.get('priority', 0),
+                    'type': item.get('type', 0),
+                    'video_type': 'main_video',  # 主视频
+                    'enable_share': item.get('enable_share', 0)
+                }
+                videos.append(video_info)
+            elif item.get('url', '').endswith('.mp4'):
+                # 直接的MP4文件
+                video_info = {
+                    'url': item.get('url', ''),
+                    'thumbnail': '',  # 没有缩略图
+                    'width': item.get('width', 0),
+                    'height': item.get('height', 0),
+                    'priority': item.get('priority', 0),
+                    'type': item.get('type', 0),
+                    'video_type': 'detail_video',  # 详情视频
+                    'enable_share': item.get('enable_share', 0)
+                }
+                videos.append(video_info)
+        
+        # 按优先级排序
+        return sorted(videos, key=lambda x: x['priority'])
+    
+    def get_main_videos(self) -> List[Dict[str, Any]]:
+        """获取主要视频（带缩略图的视频）"""
+        videos = self.get_videos()
+        return [v for v in videos if v['video_type'] == 'main_video']
+    
+    def get_detail_videos(self) -> List[Dict[str, Any]]:
+        """获取详情视频（直接的MP4文件）"""
+        videos = self.get_videos()
+        return [v for v in videos if v['video_type'] == 'detail_video']
+    
     def get_sku_info(self) -> List[Dict[str, Any]]:
         """获取SKU信息"""
         if not self.data:
