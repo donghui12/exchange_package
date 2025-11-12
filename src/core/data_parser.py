@@ -373,9 +373,14 @@ class PDDDataParser:
     
     def _smart_convert_price(self, price: float) -> float:
         """智能转换价格单位"""
-        return price / 100
         if price <= 0:
             return 0.0
+        
+        # 如果包含小数，则直接认为是正常价格，不需要转化
+        if price % 1 != 0:
+            return price
+        
+        return price / 100
         
         # 如果价格大于1000，很可能是以分为单位，需要转换为元
         if price > 1000:
